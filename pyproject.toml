@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reddit_ingestion"
+version = "0.1.0"
+description = "Reddit MLOps project"
+authors = [
+  { name = "Gabriele", email = "gabriele.passoni2@gmail.com" }
+]
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]

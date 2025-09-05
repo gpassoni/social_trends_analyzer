@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+src/reddit_ingestion/__init__.py
+src/reddit_ingestion/reddit_ingestion.py
+src/reddit_ingestion.egg-info/PKG-INFO
+src/reddit_ingestion.egg-info/SOURCES.txt
+src/reddit_ingestion.egg-info/dependency_links.txt
+src/reddit_ingestion.egg-info/top_level.txt
