@@ -1,1 +1,19 @@
 .env
+data/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Test / coverage
+.coverage
+*.coverage
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
