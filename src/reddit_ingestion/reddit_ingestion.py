@@ -53,18 +53,22 @@ class RedditIngestor:
             "post_id": str(comment.submission.id),
             "parent_id": str(comment.parent_id),
             "author": str(comment.author),
+            "author_comment_karma": int(comment.author.comment_karma) if comment.author is not None else 0,
+            "author_link_karma": int(comment.author.link_karma) if comment.author is not None else 0,
             "body": str(comment.body),
             "score": int(comment.score),
-            "created_utc": datetime.utcfromtimestamp(comment.created_utc).isoformat()
+            "created_utc": int(comment.created_utc)
         }
     def post_to_dict(self, post) -> Dict[str, Any]:
         return {
             "post_id": str(post.id),
             "title": str(post.title),
             "author": str(post.author),
+            "author_comment_karma": int(post.author.comment_karma) if post.author is not None else 0,
+            "author_link_karma": int(post.author.link_karma) if post.author is not None else 0,
             "score": int(post.score),
             "num_comments": int(post.num_comments),
-            "created_utc": datetime.utcfromtimestamp(post.created_utc).isoformat(),
+            "created_utc": int(post.created_utc),
             "selftext": str(post.selftext)
         }
     
