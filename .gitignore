@@ -1,0 +1,22 @@
+.env
+config.py
+data/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.txt
+
+# Test / coverage
+.coverage
+*.coverage
+.pytest_cache/
+
+
+# Virtual environments
+venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
