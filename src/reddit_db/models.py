@@ -6,10 +6,10 @@ from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base(metadata=MetaData(schema="public"))
 
-
 class Post(Base):
     __tablename__ = "posts"
     post_id = Column(String, primary_key=True)
+    subreddit = Column(String)
     author = Column(String)
     title = Column(Text)
     selftext = Column(Text)
@@ -21,6 +21,7 @@ class Post(Base):
     author_comment_karma = Column(Integer)
     author_link_karma = Column(Integer)
     num_comments = Column(Integer)
+    fetch_type = Column(String)
 
     extra = Column(JSONB, nullable=True)
 
