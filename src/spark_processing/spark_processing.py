@@ -15,17 +15,20 @@ from pyspark.sql.functions import (
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
+
 # ------------------- SCHEMA -------------------
 POST_SCHEMA = StructType([
     StructField("post_id", StringType(), True),
+    StructField("subreddit", StringType(), True),
     StructField("title", StringType(), True),
     StructField("author", StringType(), True),
-    StructField("author_comment_karma", IntegerType(), True),
-    StructField("author_link_karma", IntegerType(), True),
     StructField("score", IntegerType(), True),
     StructField("num_comments", IntegerType(), True),
     StructField("created_utc", LongType(), True),
     StructField("selftext", StringType(), True),
+    StructField("fetch_type", StringType(), True),
+    StructField("author_comment_karma", IntegerType(), True),
+    StructField("author_link_karma", IntegerType(), True),
 ])
 
 COMMENT_SCHEMA = StructType([
@@ -33,33 +36,31 @@ COMMENT_SCHEMA = StructType([
     StructField("post_id", StringType(), True),
     StructField("parent_id", StringType(), True),
     StructField("author", StringType(), True),
-    StructField("author_comment_karma", IntegerType(), True),
-    StructField("author_link_karma", IntegerType(), True),
     StructField("body", StringType(), True),
     StructField("score", IntegerType(), True),
     StructField("created_utc", LongType(), True),
+    StructField("author_comment_karma", IntegerType(), True),
+    StructField("author_link_karma", IntegerType(), True),
 ])
 
 
-# ------------------- PROCESSOR -------------------
 class SparkProcessor:
     def __init__(
         self,
-        raw_dir: str = "data",
-        posts_subdir: str = "posts",
-        comments_subdir: str = "comments",
+        data_path: str = "data",
         master: str = "local[*]",
         app_name: str = "RedditPostsReader",
         spark: Optional[SparkSession] = None,
         shuffle_partitions: int = 8,
         hadoop_home: Optional[str] = None
     ):
-        self.raw_dir = Path(raw_dir)
-        self.posts_subdir = Path(posts_subdir)
-        self.comments_subdir = Path(comments_subdir)
-        self.posts_dir = self.raw_dir / self.posts_subdir
-        self.comments_dir = self.raw_dir / self.comments_subdir
-        logger.info("Posts directory: %s", self.posts_dir)
+        self.data_path = Path(data_path)
+        self.raw_dir = self.data_path / "raw"
+        self.raw_posts_dir = self.raw_dir / "posts"
+        self.raw_comments_dir = self.raw_dir / "comments"
+        self.output_dir = self.data_path / "processed"
+        self.output_dir_posts = self.output_dir / "posts"
+        self.output_dir_comments = self.output_dir / "comments"
 
         #self.count_caps_words_udf = udf(self.count_caps_words, IntegerType())
 
@@ -83,7 +84,6 @@ class SparkProcessor:
         else:
             self.spark = spark
 
-        logger.info("Initialized SparkProcessor raw=%s posts=%s", self.raw_dir, self.posts_dir)
 
     @staticmethod
     def count_caps_words(text: str) -> int:
@@ -92,11 +92,11 @@ class SparkProcessor:
         words = text.split()
         return sum(1 for w in words if w.isupper() and len(w) > 1)
 
-    # ------------------- READ -------------------
     def read_posts(self) -> DataFrame:
-        csv_files = list(self.posts_dir.glob("*.csv"))
-        if not csv_files:
-            raise FileNotFoundError(f"Nessun CSV trovato in {self.posts_dir}")
+        csv_files = list(self.raw_posts_dir.glob("*.csv")) 
+        if not csv_files: 
+            raise FileNotFoundError(f"Nessun CSV trovato in {self.raw_posts_dir}")
+
         logger.info("CSV files found: %s", [str(f) for f in csv_files])
 
         df = (
@@ -112,9 +112,9 @@ class SparkProcessor:
         return df
 
     def read_comments(self) -> DataFrame:
-        csv_files = list(self.comments_dir.glob("*.csv"))
-        if not csv_files:
-            raise FileNotFoundError(f"Nessun CSV trovato in {self.comments_dir}")
+        csv_files = list(self.raw_comments_dir.glob("*.csv")) 
+        if not csv_files: 
+            raise FileNotFoundError(f"Nessun CSV trovato in {self.raw_comments_dir}")
 
         logger.info("CSV files found: %s", [str(f) for f in csv_files])
 
@@ -190,6 +190,10 @@ class SparkProcessor:
 
         if "num_comments" in df.columns:
             df = df.withColumn("num_comments", col("num_comments").cast("long"))
+        
+        if "subreddit" in df.columns:
+            df = df.withColumn("subreddit", trim(col("subreddit")))
+            df = df.withColumn("subreddit", lower(col("subreddit")))
 
         for text_col in ["title", "selftext"]:
             if text_col in df.columns:
@@ -206,55 +210,27 @@ class SparkProcessor:
 
         return df
 
-    def process_and_save_comments(self, output_dir: str = "processed_comments") -> Path:
-        """
-        Funzione finale: legge, normalizza e salva i commenti in CSV.
-        Restituisce il path della cartella dei CSV salvati.
-        """
+    def process_and_save_comments(self) -> Path:
         df_raw = self.read_comments()
         df_norm = self._generic_normalize(df_raw)
         df_norm = self._normalize_comments(df_norm)
 
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+        self.output_dir_comments.mkdir(parents=True, exist_ok=True)
 
-        # Salva in CSV (coalesce a 1 file)
-        df_norm.coalesce(1).write.option("header", "true").mode("overwrite").csv(str(output_path))
+        df_norm.coalesce(1).write.option("header", "true").mode("overwrite").csv(str(self.output_dir_comments))
 
-        logger.info("Comments normalizzati salvati in: %s", output_path)
-        return output_path
+        logger.info("Comments normalizzati salvati in: %s", self.output_dir_comments)
+        return self.output_dir_comments
 
     # ------------------- PROCESS & SAVE -------------------
-    def process_and_save_posts(self, output_dir: str = "processed_posts") -> Path:
-        """
-        Funzione finale: legge, normalizza e salva i post in CSV.
-        Restituisce il path della cartella dei CSV salvati.
-        """
+    def process_and_save_posts(self) -> Path:
         df_raw = self.read_posts()
         df_norm = self._generic_normalize(df_raw)
         df_norm = self._normalize_posts(df_norm)
 
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
+        self.output_dir_posts.mkdir(parents=True, exist_ok=True)
 
-        # Salva in CSV (coalesce a 1 file)
-        df_norm.coalesce(1).write.option("header", "true").mode("overwrite").csv(str(output_path))
+        df_norm.coalesce(1).write.option("header", "true").mode("overwrite").csv(str(self.output_dir_posts))
 
-        logger.info("Posts normalizzati salvati in: %s", output_path)
-        return output_path
-
-# ------------------- TEST COMPLETO -------------------
-if __name__ == "__main__":
-    # Directory dei dati raw
-    posts_path = r"C:\Users\Gabri\Documents\reddit_project\data\politics\raw"
-    print("Posts:", posts_path, "=>", os.path.exists(posts_path))
-
-    hadoop_home = r"C:\hadoop" 
-
-    sp = SparkProcessor(raw_dir=posts_path, posts_subdir="posts", hadoop_home=hadoop_home)
-    saved_folder = sp.process_and_save_posts(output_dir=r"C:\Users\Gabri\Documents\reddit_project\data\politics\processed\posts")
-    saved_folder_comments = sp.process_and_save_comments(output_dir=r"C:\Users\Gabri\Documents\reddit_project\data\politics\processed\comments")
-
-    print("Processing completato! Controlla i file in:", saved_folder)
-
-    sp.spark.stop()
+        logger.info("Posts normalizzati salvati in: %s", self.output_dir_posts)
+        return self.output_dir_posts

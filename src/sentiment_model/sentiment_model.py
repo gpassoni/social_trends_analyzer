@@ -17,7 +17,13 @@ class SentimentModel:
         for i in range(0, len(inputs), self.batch_size):
             batch_dicts = inputs[i:i + self.batch_size]
             batch_texts = [d['body'] for d in batch_dicts]
-            batch_tokenized = self.tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True)
+            batch_tokenized = self.tokenizer(
+                batch_texts,
+                return_tensors="pt",
+                padding="max_length",
+                truncation=True,
+                max_length=512
+            )
             batch_tokenized = {k: v.to(self.device) for k, v in batch_tokenized.items()}
 
             with torch.no_grad():
@@ -31,3 +37,4 @@ class SentimentModel:
                 d['pred_label'] = ["negative", "neutral", "positive"][torch.argmax(score_vector).item()]
 
         return inputs
+
