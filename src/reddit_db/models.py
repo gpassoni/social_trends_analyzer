@@ -56,5 +56,13 @@ class CommentSentiment(Base):
 
     comment = relationship("Comment", back_populates="sentiment", uselist=False)
 
+class SubredditStatus(Base):
+    __tablename__ = "subreddit_status"
+    subreddit = Column(String, primary_key=True)
+    total_posts = Column(Integer, default=0)
+    total_comments = Column(Integer, default=0)
+    last_updated = Column(DateTime, default=func.now(), onupdate=func.now())
+    priority = Column(Integer, default=0)  # 0 = ok, 1 = pochi dati, 2 = inesistente / priorità massima
+
 
 

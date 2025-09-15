@@ -1,7 +1,10 @@
 from spark_processing.spark_processing import SparkProcessor
+from dotenv import load_dotenv
+import os
+from pathlib import Path
 
-
-data_path = r"C:\Users\Gabri\Documents\reddit_project\data"
+load_dotenv()
+data_path = Path(os.getenv("DATA_DIR"))
 
 hadoop_home = r"C:\hadoop"
 

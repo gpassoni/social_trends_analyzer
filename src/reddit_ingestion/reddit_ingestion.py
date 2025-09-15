@@ -142,7 +142,7 @@ class RedditIngestor:
         if fetch_type == "hot":
             posts = subreddit.hot(limit=10)
         elif fetch_type == "new":
-            posts = subreddit.new(limit=10)
+            posts = subreddit.new(limit=50)
         elif fetch_type == "top":
             posts = subreddit.top(time_filter=time_filter or "all", limit=10)
         elif fetch_type == "controversial":
