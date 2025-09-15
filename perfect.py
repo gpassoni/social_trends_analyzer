@@ -52,8 +52,7 @@ def main_loop():
         run_process_raw_data()
         run_load_posts_comments_db()
         run_sentiment_loading()
- 
-        # aspetta 5 minuti prima della prossima iterazione
+
         time.sleep(100)
 
 if __name__ == "__main__":

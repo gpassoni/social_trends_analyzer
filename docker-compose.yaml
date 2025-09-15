@@ -3,29 +3,33 @@ version: "3.9"
 services:
   postgres:
     image: postgres:15
+    container_name: social_trend_analyzer-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: redditdb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   perfect:
     build: .
+    container_name: social_trend_analyzer-perfect
     volumes:
-      - .:/app           # monta la root per sviluppo
+      - .:/app
     env_file:
       - .env
     depends_on:
       - postgres
+    command: python ./perfect.py
 
   streamlit:
     build: .
-    command: streamlit run web_app/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    container_name: social_trend_analyzer-streamlit
+    command: streamlit run web_app/dashboard.py --server.port ${STREAMLIT_PORT} --server.address 0.0.0.0
     ports:
-      - "8501:8501"
+      - "${STREAMLIT_PORT}:${STREAMLIT_PORT}"
     volumes:
       - .:/app
     env_file:
