@@ -24,7 +24,7 @@ for subreddit in top_subreddits:
 
     ingestor = RedditIngestor(
         post_limit=5,
-        comment_limit=200,
+        comment_limit=250,
         current_db_post_ids=post_ids,
     )
 

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 load_dotenv()
-root_dir = os.getenv("ROUTE")
+root_dir = os.getenv("ROOT")
 root_dir = Path(root_dir) 
 pipelines_dir = root_dir / "src" / "pipelines"
 
@@ -51,10 +51,10 @@ def main_loop():
         run_fetch_data()
         run_process_raw_data()
         run_load_posts_comments_db()
-        #run_sentiment_loading()
-
+        run_sentiment_loading()
+ 
         # aspetta 5 minuti prima della prossima iterazione
-        time.sleep(300)
+        time.sleep(100)
 
 if __name__ == "__main__":
     main_loop()
