@@ -1,4 +1,6 @@
 .env
+docker.env
+
 config.py
 data/
 

@@ -19,7 +19,7 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - docker.env
     depends_on:
       - postgres
     command: python ./perfect.py
@@ -33,7 +33,7 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - docker.env
     depends_on:
       - perfect
       - postgres
