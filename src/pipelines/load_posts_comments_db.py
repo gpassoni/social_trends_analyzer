@@ -10,7 +10,6 @@ base_dir = Path(base_dir)
 posts_dir = base_dir / "processed" / "posts"
 comments_dir = base_dir / "processed" / "comments"
 
-# do a list of all csv files in posts_dir and comments_dir
 post_files = [f for f in posts_dir.glob("*.csv")]
 comment_files = [f for f in comments_dir.glob("*.csv")]
 
@@ -22,7 +21,6 @@ for post_file in post_files:
 for comment_file in comment_files:
     manager.load_from_csv(comment_file, Comment)
 
-# delete all files in the raw posts and comments directories
 raw_posts_dir = base_dir / "raw" / "posts"
 raw_comments_dir = base_dir / "raw" / "comments"
 

@@ -1,6 +1,4 @@
-from sqlalchemy import (
-    Column, Integer, String, Text, Float, DateTime, ForeignKey, func, Time, MetaData
-)
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, func, Time, MetaData
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -22,9 +20,7 @@ class Post(Base):
     author_link_karma = Column(Integer)
     num_comments = Column(Integer)
     fetch_type = Column(String)
-
     extra = Column(JSONB, nullable=True)
-
     comments = relationship("Comment", back_populates="post")
 
 class Comment(Base):
@@ -40,9 +36,7 @@ class Comment(Base):
     created_ts = Column(DateTime)
     created_date = Column(DateTime)
     created_time = Column(Time)
-
     extra = Column(JSONB, nullable=True)
-
     post = relationship("Post", back_populates="comments")
     sentiment = relationship("CommentSentiment", back_populates="comment", uselist=False)
 
@@ -53,7 +47,6 @@ class CommentSentiment(Base):
     positive_score = Column(Float)
     negative_score = Column(Float)
     pred_label = Column(String)
-
     comment = relationship("Comment", back_populates="sentiment", uselist=False)
 
 class SubredditStatus(Base):
@@ -62,7 +55,10 @@ class SubredditStatus(Base):
     total_posts = Column(Integer, default=0)
     total_comments = Column(Integer, default=0)
     last_updated = Column(DateTime, default=func.now(), onupdate=func.now())
-    priority = Column(Integer, default=0)  # 0 = ok, 1 = pochi dati, 2 = inesistente / priorità massima
+    priority = Column(Integer, default=0)
+    __tablename__ = "subreddit_status"
 
+    subreddit = Column(String, primary_key=True)
 
+    total_posts = Column(Integer, default=0)
 

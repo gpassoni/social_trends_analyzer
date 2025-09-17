@@ -48,7 +48,6 @@ class RedditIngestor:
         comments = post.comments.list()
         if self.comment_limit:
             comments = comments[:self.comment_limit]
-
         comments_dict_list = [self.comment_to_dict(c) for c in comments if self.comment_check(c)]
         return comments_dict_list
 
@@ -92,7 +91,7 @@ class RedditIngestor:
             "created_utc": int(comment.created_utc)
         }
         try:
-            comment_dict["author_comment_karma"] = int(comment.author.comment_karma) 
+            comment_dict["author_comment_karma"] = int(comment.author.comment_karma)
             comment_dict["author_link_karma"] = int(comment.author.link_karma)
         except Exception as e:
             print(f"Error processing comment {comment.id}: {e}")
@@ -110,10 +109,10 @@ class RedditIngestor:
             "num_comments": int(post.num_comments),
             "created_utc": int(post.created_utc),
             "selftext": str(post.selftext),
-            "fetch_type": fetch_type  
+            "fetch_type": fetch_type
         }
         try:
-            post_dict["author_comment_karma"] = int(post.author.comment_karma) 
+            post_dict["author_comment_karma"] = int(post.author.comment_karma)
             post_dict["author_link_karma"] = int(post.author.link_karma)
         except Exception as e:
             print(f"Error processing post {post.id}: {e}")
@@ -168,7 +167,6 @@ class RedditIngestor:
 
                 print(f"Fetched post {post.id} with {len(comments_data)} comments, total posts fetched: {len(post_df)}")
 
-        #self.save_to_csv(post_df, comments_df)
         return post_df, comments_df
 
     def fetch_hot_posts(self, subreddit_name: str):
@@ -190,6 +188,13 @@ class RedditIngestor:
         all_posts = pd.concat([hot_posts, top_posts, new_posts], ignore_index=True)
         all_comments = pd.concat([hot_comments, top_comments, new_comments], ignore_index=True)
         self.save_to_csv(all_posts, all_comments)
+        self.save_to_csv(all_posts, all_comments)
+
+
+
+
+
+
 
 
 

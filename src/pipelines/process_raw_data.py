@@ -12,6 +12,6 @@ sp = SparkProcessor(data_path=data_path, hadoop_home=hadoop_home)
 saved_folder = sp.process_and_save_posts()
 saved_folder_comments = sp.process_and_save_comments()
 
-print("Processing completato! Controlla i file in:", saved_folder)
+print("Processing completed! Check the files in:", saved_folder)
 
 sp.spark.stop()
