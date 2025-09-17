@@ -1,6 +1,9 @@
 .env
+docker.env
+
 config.py
 data/
+notebooks/
 
 # Python bytecode
 __pycache__/
