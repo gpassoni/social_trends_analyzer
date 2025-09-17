@@ -4,8 +4,34 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 
+def plot_sentiments_distribution_by_post(df):
+    st.subheader("Sentiment Distribution Across Posts")
+
+    fig = px.histogram(
+        df,
+        x='probability',
+        color='sentiment',
+        nbins=25,
+    barmode='overlay',
+    opacity=0.85,
+    histnorm='percent',
+    color_discrete_sequence=px.colors.qualitative.Set2
+    )
+
+    fig.update_traces(marker_line_width=0)
+    fig.update_layout(
+        xaxis_title="Sentiment Score (Probability)",
+        yaxis_title="Percentage of Posts (%)",
+        legend_title="Sentiment",
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True),
+        dragmode=False,
+        hovermode=False,
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={'staticPlot': True})
+
 st.set_page_config(page_title="Sentiment Analysis", page_icon="📈", layout="wide")
-st.write("DEBUG session_state:", dict(st.session_state))
 
 if "selected_subreddit" not in st.session_state:
     st.warning("⚠️ No subreddit selected. Please go back to the previous page.")
@@ -13,7 +39,7 @@ if "selected_subreddit" not in st.session_state:
 
 subreddit = st.session_state["selected_subreddit"]
 
-col1, col2 = st.columns([9, 1])
+col1, col2 = st.columns([8, 2])
 with col1:
     st.title(f"📈 Analysis of r/{st.session_state['selected_subreddit']}")
 with col2:
@@ -35,34 +61,21 @@ data = manager.get_all_sentiments_subreddit(subreddit)
 if data is None:
     st.stop()
 
-# Quick stats
-col1, col2, col3 = st.columns(3)
-# count all the non null posts
-non_null_posts = data[data['positive_score'].notnull()]
-col1.metric("Posts analyzed", len(non_null_posts))
-col2.metric("Average positive", f"{non_null_posts['positive_score'].mean():.2f}")
-col3.metric("Average negative", f"{non_null_posts['negative_score'].mean():.2f}")
+col1, col2, col3, col4 = st.columns(4)
+non_null_comments = data[data['positive_score'].notnull()]
+positive_percentage = non_null_comments[non_null_comments['pred_label'] == 'positive'].shape[0] / non_null_comments.shape[0] * 100
+negative_percentage = non_null_comments[non_null_comments['pred_label'] == 'negative'].shape[0] / non_null_comments.shape[0] * 100
+col1.metric("Posts analyzed", manager.get_posts_count_for_subreddit(subreddit))
+col2.metric("Comments analyzed", len(non_null_comments))
+col3.metric("Positive comments", f"{positive_percentage:.1f}%")
+col4.metric("Negative comments", f"{negative_percentage:.1f}%")
 st.markdown("---")
 
-# Charts (dummy for now)
-st.subheader("Daily Trend")
-daily_data = manager.get_daily_sentiment(subreddit)
-df_melt = daily_data.melt(id_vars='day', value_vars=['avg_negative','avg_neutral','avg_positive'],
-                          var_name='Sentiment', value_name='Score')
 
-fig = px.bar(df_melt, x='day', y='Score', color='Sentiment', 
-             color_discrete_map={'avg_negative':'red', 'avg_neutral':'blue', 'avg_positive':'green'})   
+data = manager.get_posts_features_by_subreddit(subreddit)
+cols = ["avg_negative", "avg_neutral", "avg_positive"]
+df_long = data[cols].melt(var_name="sentiment", value_name="probability")
+plot_sentiments_distribution_by_post(df_long)
 
-fig.update_layout(barmode='stack', xaxis_title='Day', yaxis_title='Average Score')
-st.plotly_chart(fig)
 
-st.subheader("Weekly Trend")
-weekly_data = manager.get_weekly_sentiment(subreddit)
-df_melt_weekly = weekly_data.melt(id_vars='week', value_vars=['avg_negative','avg_neutral','avg_positive'],
-                                  var_name='Sentiment', value_name='Score')
 
-fig_weekly = px.bar(df_melt_weekly, x='week', y='Score', color='Sentiment', 
-                    color_discrete_map={'avg_negative':'red', 'avg_neutral':'blue', 'avg_positive':'green'})
-
-fig_weekly.update_layout(barmode='stack', xaxis_title='Week', yaxis_title='Average Score')
-st.plotly_chart(fig_weekly)
