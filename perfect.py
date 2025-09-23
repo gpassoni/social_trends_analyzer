@@ -21,18 +21,6 @@ def run_fetch_data():
     subprocess.run(["python", str(fetch_path)], check=True)
 
 @task
-def run_process_raw_data():
-    print(f"[{datetime.now()}] Running process_raw_data.py")
-    process_path = pipelines_dir / "process_raw_data.py"
-    subprocess.run(["python", str(process_path)], check=True)
-
-@task
-def run_load_posts_comments_db():
-    print(f"[{datetime.now()}] Running load_posts_comments_db.py")
-    load_path = pipelines_dir / "load_posts_comments_db.py"
-    subprocess.run(["python", str(load_path)], check=True)
-
-@task
 def run_sentiment_loading():
     print(f"[{datetime.now()}] Running sentiment_loading.py")
     sentiment_path = pipelines_dir / "sentiment_loading.py"
@@ -49,10 +37,6 @@ def main_loop():
         now = datetime.now()
 
         run_fetch_data()
-        run_process_raw_data()
-        run_load_posts_comments_db()
-        run_sentiment_loading()
-
         time.sleep(100)
 
 if __name__ == "__main__":

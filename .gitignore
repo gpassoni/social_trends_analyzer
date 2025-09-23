@@ -9,6 +9,9 @@ notebooks/
 __pycache__/
 *.py[cod]
 *.txt
+*.bak
+*.dat
+*.dir
 
 # Test / coverage
 .coverage

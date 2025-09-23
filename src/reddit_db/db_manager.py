@@ -1,24 +1,56 @@
-from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.inspection import inspect
-from sqlalchemy.exc import IntegrityError
 import pandas as pd
 import numpy as np
-from .config import DB_URL, ECHO_SQL
-from .models import Base, Post, Comment, CommentSentiment, SubredditStatus
-from sqlalchemy import func, case, Float
+from .models import Post, Comment, Subreddit 
+from sqlmodel import SQLModel, Session, create_engine, select, inspect
+import os
+from dotenv import load_dotenv, dotenv_values
+load_dotenv(".env")
+
 
 class RedditDBManager:
-    def __init__(self, db_url=DB_URL, echo=ECHO_SQL):
-        self.engine = create_engine(db_url, echo=echo)
-        Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+    def __init__(self, db_url=os.getenv("DATABASE_URL")):
+        self.engine = create_engine(db_url)
+        SQLModel.metadata.create_all(bind=self.engine)
 
     def reset_database(self):
-        pass
+        SQLModel.metadata.drop_all(bind=self.engine)
+        SQLModel.metadata.create_all(bind=self.engine)
 
+    def delete_subreddit(self, subreddit_name: str):
+        with Session(self.engine) as session:
+            stmt = select(Subreddit).where(Subreddit.name == subreddit_name)
+            subreddit = session.exec(stmt).first()
+            if subreddit:
+                session.delete(subreddit)
+                session.commit()
+                return True
+            return False
+    
+    def get_posts_without_comments(self) -> list[str]:
+        with Session(self.engine) as session:
+            results = (
+                session.exec(
+                    select(Post.post_id)
+                    .where(~Post.comments.any())
+                )
+                .all()
+            )
+            return [post_id for post_id in results]
+    
+    def get_highest_priority_subreddits(self) -> list[str]:
+        with Session(self.engine) as session:
+            stmt = select(Subreddit).order_by(Subreddit.priority.desc())
+            subreddits = session.exec(stmt).all()
+            if not subreddits:
+                return []
+            highest_priority = subreddits[0].priority
+            top_subreddits = [sub.name for sub in subreddits if sub.priority == highest_priority]
+            return top_subreddits
+     
+
+"""
     def get_all_sentiments_subreddit(self, subreddit: str) -> pd.DataFrame:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = (
                 session.query(
                     CommentSentiment.comment_id,
@@ -39,7 +71,7 @@ class RedditDBManager:
             return df
 
     def get_hourly_sentiment(self, subreddit: str) -> pd.DataFrame:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             q = (
                 session.query(
                     func.date_trunc("hour", Comment.created_ts).label("hour"),
@@ -57,7 +89,7 @@ class RedditDBManager:
             return df
 
     def get_daily_sentiment(self, subreddit: str) -> pd.DataFrame:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             q = (
                 session.query(
                     func.date_trunc("day", Comment.created_date).label("day"),
@@ -75,7 +107,7 @@ class RedditDBManager:
             return df
 
     def get_weekly_sentiment(self, subreddit: str) -> pd.DataFrame:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             q = (
                 session.query(
                     func.date_trunc("week", Comment.created_date).label("week"),
@@ -93,7 +125,7 @@ class RedditDBManager:
             return df
 
     def get_posts_count_for_subreddit(self, subreddit: str) -> int:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             count = (
                 session.query(func.count(Post.post_id))
                 .filter(Post.subreddit == subreddit)
@@ -102,7 +134,7 @@ class RedditDBManager:
             return count
 
     def get_posts_features(self):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             subquery = (
                 session.query(
                     Comment.post_id.label("post_id"),
@@ -143,7 +175,7 @@ class RedditDBManager:
             return df
 
     def get_posts_features_by_subreddit(self, subreddit: str):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             subquery = (
                 session.query(
                     Comment.post_id.label("post_id"),
@@ -190,12 +222,12 @@ class RedditDBManager:
             return df
 
     def get_all_subreddits(self) -> list[str]:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = session.query(Post.subreddit).distinct().all()
             return [sub for (sub,) in results]
 
     def get_all_sentiments(self) -> pd.DataFrame:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = session.query(
                 CommentSentiment.comment_id,
                 CommentSentiment.negative_score,
@@ -209,7 +241,7 @@ class RedditDBManager:
             return df
 
     def get_comments_for_sentiment(self) -> list[dict]:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = (
                 session.query(Comment.comment_id, Comment.body)
                 .outerjoin(CommentSentiment)
@@ -219,12 +251,12 @@ class RedditDBManager:
             return [{"comment_id": c_id, "body": body} for c_id, body in results]
 
     def get_all_post_ids(self) -> list[str]:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = session.query(Post.post_id).all()
             return [post_id for (post_id,) in results]
 
     def get_post_ids_for_subreddit(self, subreddit: str) -> list[str]:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             results = (
                 session.query(Post.post_id)
                 .filter(Post.subreddit == subreddit)
@@ -233,7 +265,7 @@ class RedditDBManager:
             return [post_id for (post_id,) in results]
 
     def load_sentiments(self, sentiments: list[dict]):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             try:
                 session.bulk_insert_mappings(CommentSentiment, sentiments)
                 session.commit()
@@ -242,7 +274,7 @@ class RedditDBManager:
                 raise e
 
     def update_subreddit_status(self):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             post_counts = (
                 session.query(
                     Post.subreddit,
@@ -285,7 +317,7 @@ class RedditDBManager:
             session.commit()
 
     def add_new_subreddit(self, subreddit: str):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             existing = session.get(SubredditStatus, subreddit)
             if existing:
                 print(f"Subreddit '{subreddit}' already present in the db.")
@@ -303,7 +335,7 @@ class RedditDBManager:
             return new_sub
 
     def remove_existing_subreddit(self, subreddit: str):
-        with self.Session() as session:
+        with Session(self.engine) as session:
             existing = session.get(SubredditStatus, subreddit)
             if not existing:
                 print(f"Subreddit '{subreddit}' not found in the db.")
@@ -315,7 +347,7 @@ class RedditDBManager:
             return True
 
     def get_subreddit_status(self, subreddit: str) -> dict | None:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             sub_status = session.get(SubredditStatus, subreddit)
             if not sub_status:
                 return None
@@ -329,7 +361,7 @@ class RedditDBManager:
             }
 
     def get_highest_priority_subreddits(self) -> list[str]:
-        with self.Session() as session:
+        with Session(self.engine) as session:
             max_priority = session.query(func.max(SubredditStatus.priority)).scalar()
             if max_priority is None:
                 return []
@@ -350,7 +382,7 @@ class RedditDBManager:
             if c_attr.key != 'extra'
         }
 
-        with self.Session() as session:
+        with Session(self.engine) as session:
             try:
                 for _, row in df.iterrows():
                     core_data = {k: row[k] for k in df.columns if k in model_columns}
@@ -361,3 +393,4 @@ class RedditDBManager:
             except Exception as e:
                 session.rollback()
                 raise e
+"""
