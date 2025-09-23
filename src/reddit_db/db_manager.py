@@ -4,6 +4,7 @@ from .models import Post, Comment, Subreddit
 from sqlmodel import SQLModel, Session, create_engine, select, inspect
 import os
 from dotenv import load_dotenv, dotenv_values
+from sqlalchemy import func, case
 load_dotenv(".env")
 
 
@@ -15,16 +16,6 @@ class RedditDBManager:
     def reset_database(self):
         SQLModel.metadata.drop_all(bind=self.engine)
         SQLModel.metadata.create_all(bind=self.engine)
-
-    def delete_subreddit(self, subreddit_name: str):
-        with Session(self.engine) as session:
-            stmt = select(Subreddit).where(Subreddit.name == subreddit_name)
-            subreddit = session.exec(stmt).first()
-            if subreddit:
-                session.delete(subreddit)
-                session.commit()
-                return True
-            return False
     
     def get_posts_without_comments(self) -> list[str]:
         with Session(self.engine) as session:
@@ -46,7 +37,48 @@ class RedditDBManager:
             highest_priority = subreddits[0].priority
             top_subreddits = [sub.name for sub in subreddits if sub.priority == highest_priority]
             return top_subreddits
-     
+        
+    def calculate_subreddits_post_counts(self) -> dict[str, int]:
+        """Return the number of posts for each subreddit as a dict."""
+        with Session(self.engine) as session:
+            stmt = (
+                select(Post.subreddit_name, func.count(Post.post_id))
+                .group_by(Post.subreddit_name)
+            )
+            results = session.exec(stmt).all()
+            return dict(results)
+    
+    def calculate_subreddit_priorities(self):
+        """Calculate priorities based on post counts."""
+        post_counts = self.calculate_subreddits_post_counts()
+
+        if not post_counts:
+            return
+
+        max_count = max(post_counts.values())
+        threshold = max_count * 0.5
+
+        with Session(self.engine) as session:
+            for subreddit_name, post_count in post_counts.items():
+                subreddit = session.get(Subreddit, subreddit_name)
+                if not subreddit:
+                    continue
+
+                if post_count < 10:
+                    subreddit.priority = 0
+                elif post_count < threshold:
+                    subreddit.priority = 1
+                else:
+                    subreddit.priority = 2
+
+                session.add(subreddit)
+            session.commit()
+    
+    def get_subreddits_priorities(self) -> list[dict]:
+        with Session(self.engine) as session:
+            stmt = select(Subreddit)
+            subreddits = session.exec(stmt).all()
+            return [{"name": sub.name, "priority": sub.priority} for sub in subreddits]
 
 """
     def get_all_sentiments_subreddit(self, subreddit: str) -> pd.DataFrame:
