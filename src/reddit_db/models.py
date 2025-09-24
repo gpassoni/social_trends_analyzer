@@ -28,4 +28,10 @@ class Comment(SQLModel, table=True):
     score: int
     created_utc: int
 
+    # To be created after sentiment analysis
+    negative_score: Optional[float] = None
+    neutral_score: Optional[float] = None
+    positive_score: Optional[float] = None
+    pred_label: Optional[str] = None
+
     post: Optional[Post] = Relationship(back_populates="comments")

@@ -14,6 +14,7 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+# ------------ db operations ------------
 @app.post("/posts/", response_model=Post)
 def create_post(post: Post, session: Session = Depends(get_session)):
     session.add(post)
@@ -55,6 +56,25 @@ def get_subreddits(session: Session = Depends(get_session)):
     subreddits = session.exec(select(Subreddit)).all()
     return subreddits
 
+# ------------ Streamlit data retrieval ------------
+@app.get("/subreddits/sentiment/{subreddit_name}")
+def get_subreddit_sentiment(subreddit_name: str):
+    info = db_manager.get_subreddit_sentiment_info(subreddit_name)
+    if info is None:
+        raise HTTPException(status_code=404, detail="Subreddit not found or no posts available")
+    return info
 
+@app.get("/subreddits/posts_count/{subreddit_name}")
+def get_subreddit_posts_count(subreddit_name: str):
+    count = db_manager.calculate_subreddits_post_counts()
+    if count is None:
+        raise HTTPException(status_code=404, detail="Subreddit not found or no posts available")
 
+    return {"subreddit": subreddit_name, "posts_count": count[subreddit_name]}
 
+@app.get("/subreddits/subreddit_status/{subreddit_name}")
+def get_subreddits_priorities(subreddit_name: str):
+    status = db_manager.get_subreddits_priorities(subreddit_name)
+    if status is None:
+        raise HTTPException(status_code=404, detail="Subreddit not found")
+    return status

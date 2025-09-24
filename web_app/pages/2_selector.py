@@ -39,8 +39,7 @@ if available_subreddits:
         with cols[i % 3]:
             if st.button(sub, use_container_width=True):
                 st.session_state["selected_subreddit"] = sub
-                n_posts = get_n_posts_in_subreddit(sub)
-                st.success(f"Selected **r/{sub}** with **{n_posts}** posts.")
+                st.switch_page("pages/3_analysis.py")
 
 else:
     st.info("No subreddits available.")

@@ -5,6 +5,8 @@ from sqlmodel import SQLModel, Session, create_engine, select, inspect
 import os
 from dotenv import load_dotenv, dotenv_values
 from sqlalchemy import func, case
+from typing import Dict, Optional, List
+
 load_dotenv(".env")
 
 
@@ -79,6 +81,72 @@ class RedditDBManager:
             stmt = select(Subreddit)
             subreddits = session.exec(stmt).all()
             return [{"name": sub.name, "priority": sub.priority} for sub in subreddits]
+        
+    def get_unlabeled_comments(self, limit: int = 512) -> list[dict[str, str]]:
+        """Return a batch of comments where pred_label is None."""
+        with Session(self.engine) as session:
+            stmt = select(Comment).where(Comment.pred_label == None).limit(limit)
+            comments = session.exec(stmt).all()
+            return [{"comment_id": comment.comment_id, "body": comment.body} for comment in comments]
+
+    def update_comments_with_sentiment(self, predictions: list[dict]):
+        """
+        Update Comment rows with the output from SentimentModel.
+        Each dict in `predictions` must contain:
+        comment_id, negative_score, neutral_score, positive_score, pred_label
+        """
+        with Session(self.engine) as session:
+            for pred in predictions:
+                comment = session.get(Comment, pred['comment_id'])
+                if comment:
+                    comment.negative_score = pred['negative_score']
+                    comment.neutral_score = pred['neutral_score']
+                    comment.positive_score = pred['positive_score']
+                    comment.pred_label = pred['pred_label']
+                    session.add(comment)  # opzionale, ma sicuro
+            session.commit()
+        
+    def get_subreddit_sentiment_info(self, subreddit_name: str) -> Optional[List[Dict]]:
+        """
+        Return sentiment info for all comments in a subreddit in JSON-serializable format.
+        
+        Output: List of dicts, each dict is a comment with:
+        - post_id
+        - comment_id
+        - pred_label
+        - positive_score
+        - neutral_score
+        - negative_score
+        - created_date (ISO 8601 string)
+        """
+        with Session(self.engine) as session:
+            stmt = (
+                select(Comment, Post.post_id)
+                .join(Post, Comment.post_id == Post.post_id)
+                .where(Post.subreddit_name == subreddit_name)
+                .where(Comment.pred_label != None)
+            )
+            results = session.exec(stmt).all()
+
+            if not results:
+                return None
+
+            data = []
+            for comment, post_id in results:
+                data.append({
+                    "post_id": post_id,
+                    "comment_id": comment.comment_id,
+                    "pred_label": comment.pred_label,
+                    "positive_score": comment.positive_score,
+                    "neutral_score": comment.neutral_score,
+                    "negative_score": comment.negative_score,
+                    "created_date": comment.created_utc
+                })
+
+            return data
+
+
+
 
 """
     def get_all_sentiments_subreddit(self, subreddit: str) -> pd.DataFrame:
