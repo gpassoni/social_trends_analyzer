@@ -37,6 +37,7 @@ def main_loop():
         now = datetime.now()
 
         run_fetch_data()
+        run_sentiment_loading()
         time.sleep(100)
 
 if __name__ == "__main__":
