@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Field, Session, create_engine, select, Relationship
 from typing import Optional, List
+from datetime import datetime
 
 class Subreddit(SQLModel, table=True):
     name: str = Field(primary_key=True)
@@ -13,6 +14,7 @@ class Post(SQLModel, table=True):
     author: str 
     score: int
     created_utc: int
+    created_datetime: datetime
     fetch_type: str
 
     subreddit_name: str = Field(foreign_key="subreddit.name")
@@ -27,6 +29,7 @@ class Comment(SQLModel, table=True):
     body: str
     score: int
     created_utc: int
+    created_datetime: datetime
 
     # To be created after sentiment analysis
     negative_score: Optional[float] = None
