@@ -4,6 +4,7 @@ from reddit_db.db_manager import RedditDBManager
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
+import pandas as pd
 
 def plot_sentiments_distribution_by_post(df):
     st.subheader("Sentiment Distribution Across Posts")
@@ -60,7 +61,7 @@ if subreddit_status is not None:
 
 def get_subreddit_general_info(subreddit_name):
     base_url = "http://localhost:8000"
-    status_url = f"{base_url}/subreddits/sentiment/{subreddit_name}"
+    status_url = f"{base_url}/data/comments/sentiment/{subreddit_name}"
     response = requests.get(status_url)
     if response.status_code == 200:
         data = response.json()
@@ -68,7 +69,7 @@ def get_subreddit_general_info(subreddit_name):
 
 def get_subreddit_posts_count(subreddit_name):
     base_url = "http://localhost:8000"
-    count_url = f"{base_url}/subreddits/posts_count/{subreddit_name}"
+    count_url = f"{base_url}/data/subreddits/posts_count/{subreddit_name}"
     response = requests.get(count_url)
     if response.status_code == 200:
         data = response.json()
@@ -100,13 +101,48 @@ col3.metric("Positive comments", f"{positive_percentage:.1f}%")
 col4.metric("Negative comments", f"{negative_percentage:.1f}%")
 st.markdown("---")
 
+def plot_sentiments_distribution(df_melted):
+    st.subheader("Sentiment Distribution of Comments")
 
-"""
-data = manager.get_posts_features_by_subreddit(subreddit)
-cols = ["avg_negative", "avg_neutral", "avg_positive"]
-df_long = data[cols].melt(var_name="sentiment", value_name="probability")
-plot_sentiments_distribution_by_post(df_long)
-"""
+    fig = px.histogram(
+        df_melted,
+        x="probability",
+        color="sentiment",
+        nbins=25,
+        barmode="overlay",
+        opacity=0.85,
+        histnorm="percent",
+        color_discrete_map={
+            "positive_score": "green",
+            "neutral_score": "blue",
+            "negative_score": "red"
+        }
+    )
+
+    fig.update_traces(marker_line_width=0)
+    fig.update_layout(
+        xaxis_title="Sentiment Score (Probability)",
+        yaxis_title="Percentage of Posts (%)",
+        legend_title="Sentiment",
+        xaxis=dict(fixedrange=True),
+        yaxis=dict(fixedrange=True),
+        dragmode=False,
+        hovermode=False,
+    )
+
+    st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True})
+
+df = pd.DataFrame(data)
+df_melted = df.melt(
+    id_vars=["post_id", "comment_id", "pred_label", "created_date"],
+    value_vars=["positive_score", "neutral_score", "negative_score"],
+    var_name="sentiment",
+    value_name="probability"
+)
+
+plot_sentiments_distribution(df_melted)
+
+
 
 
 
