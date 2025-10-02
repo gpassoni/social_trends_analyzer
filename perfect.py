@@ -34,11 +34,10 @@ def main_loop():
     last_hourly_run = None
 
     while True:
-        now = datetime.now()
-
+        start_time = time.time()
         run_fetch_data()
         run_sentiment_loading()
-        time.sleep(100)
+        print(f"Cycle completed in {time.time() - start_time:.2f} seconds.")
 
 if __name__ == "__main__":
     main_loop()
