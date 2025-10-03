@@ -19,78 +19,62 @@ The project integrates several technologies into a single workflow:
    Reddit posts and comments are fetched from selected subreddits using [PRAW](https://praw.readthedocs.io/), the Python Reddit API Wrapper.
 
 2. **Data Processing**  
-   The raw text is cleaned, transformed, and aggregated with **Apache Spark**, making the system scalable and able to handle large volumes of Reddit data.
+   The raw text is cleaned, transformed, and aggregated using custom Python scripts and pipelines.
 
-3. **Storage**  
+3. **Backend API**  
+   A **FastAPI** backend exposes endpoints to access and manage the processed data programmatically.  
+   The API can be used by the Streamlit dashboard, data pipelines, or other tools.
+
+4. **Storage**  
    Processed results are stored in a **PostgreSQL** database, providing efficient access and persistence for later analysis.
 
-4. **Sentiment Analysis**  
+5. **Sentiment Analysis**  
    Text is analyzed using pretrained models from [Hugging Face](https://huggingface.co/).  
    Currently, the pipeline applies [`cardiffnlp/twitter-roberta-base-sentiment`](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment), which classifies text into positive, neutral, or negative sentiment.
 
-5. **Visualization**  
+6. **Visualization**  
    An interactive **Streamlit** dashboard allows users to explore sentiment trends across subreddits and timeframes (hourly, daily, weekly).
 
-6. **Deployment**  
+7. **Deployment**  
    The entire system is packaged with **Docker**, ensuring reproducibility and easy setup across environments.
+
+> **Note:** In some earlier versions of this project, Apache Spark was used for data processing. If you are using those versions, please refer to the README in that branch for setup instructions.
 
 ---
 
 ## Usage
 
-### 1. Prerequisites
+### Running Locally
 
-Before starting, ensure you have:
-
-- **Docker**: [Install Docker](https://docs.docker.com/get-docker/)  
-  - On **Windows/macOS**, Docker Compose is included in Docker Desktop.  
-  - On **Linux**, recent Docker versions include `docker compose` as a plugin. If not, install Docker Compose separately: [Install Docker Compose](https://docs.docker.com/compose/install/).
-
-- **Reddit Account**: You need a Reddit account to fetch data. [Sign up here](https://www.reddit.com/register/).
-
-- **Reddit API Credentials**: To access Reddit's API, you need to obtain API credentials (Client ID, Client Secret, User Agent).  
-  For detailed instructions, see the official Reddit API wiki: [https://www.reddit.com/r/reddit.com/wiki/api/](https://www.reddit.com/r/reddit.com/wiki/api/)
-
----
-
-### 2. Environment Variables
-
-Create a file called `docker.env` in the project root. Add the following variables:
-
-```env
-# PostgreSQL settings
-POSTGRES_USER=analyzer
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=social_trends
-POSTGRES_PORT=5432
-
-# Streamlit dashboard
-STREAMLIT_PORT=8501
-
-# Reddit API credentials
-REDDIT_CLIENT_ID=your_client_id
-REDDIT_CLIENT_SECRET=your_client_secret
-REDDIT_USER_AGENT=your_user_agent
-```
-
-This file allows the containers to communicate correctly and access the Reddit API.
-
-### Build and Start 
-
-From the project root, run:
+1. **Start PostgreSQL** (make sure the database exists and credentials match your `.env` file).  
+2. **Run the backend FastAPI**:
 ```bash
-docker-compose up --build
+uvicorn src.app:app --reload 
 ```
 
-This command will:
+3. **Run the streamlit dashboard**:
+```bash
+streamlit run web_app/dashboard.py
+```
 
-1. **Build the Docker images.**  
-2. **Start three services**:
-   - **PostgreSQL (`postgres`)** – the database container.  
-   - **Pipeline (`perfect`)** – automatically runs `perfect.py`.  
-   - **Streamlit dashboard (`streamlit`)** – accessible at [http://localhost:8501](http://localhost:8501).  
+4. **Run the pipeline (fetch and process data)**:
+```bash
+python perfect.py
+```
 
-You will see logs for all containers in your terminal. The pipeline will fetch data, process it, analyze sentiment, and store the results in PostgreSQL.
+### Running with Docker
+1. **Build and start the stack**:
+```bash
+docker compose up --build
+```
+
+This will:
+- Build Docker images for backend, pipeline, Streamlit, and PostgreSQL.
+- Start all services:
+   - PostgreSQL (postgres) – the database container.
+   - Backend (backend) – FastAPI server at http://localhost:8000.
+   - Pipeline (pipeline) – automatically runs perfect.py.
+   - Streamlit dashboard (streamlit) – accessible at http://localhost:8501.
 
 ### 4. Dashboard Access
 
@@ -115,4 +99,8 @@ Planned improvements include:
 - Asynchronous data fetching with PRAW for higher efficiency.
 - Enhanced subreddit search with keyword-based filtering.
 - Exploration of alternative sentiment analysis models.
-- Additional visualization options in the Streamlit interface.
+
+
+
+
+

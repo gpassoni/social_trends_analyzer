@@ -31,8 +31,6 @@ def run_sentiment_loading():
 # ----------------
 @flow
 def main_loop():
-    last_hourly_run = None
-
     while True:
         start_time = time.time()
         run_fetch_data()

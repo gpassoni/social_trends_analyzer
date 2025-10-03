@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import pandas as pd
+import os 
+from dotenv import load_dotenv
+load_dotenv()
 
 def plot_sentiments_distribution_by_post(df):
     st.subheader("Sentiment Distribution Across Posts")
@@ -57,19 +60,17 @@ if subreddit_status is not None:
     elif priority == 1:
         st.info("ℹ️ This subreddit has a low number of posts. Analysis may be limited.")
 
-
+API_URL = os.getenv("API_URL")
 
 def get_subreddit_general_info(subreddit_name):
-    base_url = "http://localhost:8000"
-    status_url = f"{base_url}/data/comments/sentiment/{subreddit_name}"
+    status_url = f"{API_URL}/data/comments/sentiment/{subreddit_name}"
     response = requests.get(status_url)
     if response.status_code == 200:
         data = response.json()
     return data #list of comments with sentiment scores
 
 def get_subreddit_posts_count(subreddit_name):
-    base_url = "http://localhost:8000"
-    count_url = f"{base_url}/data/subreddits/posts_count/{subreddit_name}"
+    count_url = f"{API_URL}/data/subreddits/posts_count/{subreddit_name}"
     response = requests.get(count_url)
     if response.status_code == 200:
         data = response.json()

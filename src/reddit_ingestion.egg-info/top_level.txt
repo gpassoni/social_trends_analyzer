@@ -1,3 +1,0 @@
-reddit_ingestion
-sentiment_model
-spark_processing

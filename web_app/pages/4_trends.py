@@ -3,10 +3,13 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import requests
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 st.set_page_config(page_title="Sentiment Analysis", page_icon="📈", layout="wide")
 
-API_URL = "http://127.0.0.1:8000/data/sentiment"  # <-- qui l'URL della tua API FastAPI
+API_URL = os.getenv("API_URL")
 
 if "selected_subreddit" not in st.session_state:
     st.warning("⚠️ No subreddit selected. Please go back to the previous page.")
@@ -35,7 +38,7 @@ st.markdown("---")
 def fetch_sentiment_data(freq: str, subreddit: str) -> pd.DataFrame:
     """Chiama l'endpoint FastAPI e restituisce un DataFrame pandas"""
     try:
-        response = requests.get(f"{API_URL}/{freq}/{subreddit}")
+        response = requests.get(f"{API_URL}/data/sentiment/{freq}/{subreddit}")
         response.raise_for_status()
         data = response.json()
         return pd.DataFrame(data)

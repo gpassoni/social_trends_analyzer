@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    openjdk-21-jdk \
     build-essential \
     libpq-dev \
     wget \
@@ -11,18 +11,20 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-ENV PATH=$JAVA_HOME/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copy source code
 COPY ./src /app/src
 COPY pyproject.toml .
 RUN pip install --no-cache-dir -e .
 
+# Copy pipeline script
 COPY perfect.py .
 
-CMD ["python3", "./perfect.py"]
+# Default command: run backend FastAPI
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from reddit_db.models import Post, Comment, Subreddit
 from reddit_db.db_manager import RedditDBManager
 from sqlmodel import Session, select
-from tasks.celery_app import fetch_posts, fetch_comments
 
 app = FastAPI()
 db_manager = RedditDBManager()

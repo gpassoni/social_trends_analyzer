@@ -6,12 +6,13 @@ from typing import List, Dict, Any, Optional, Union
 import pandas as pd
 from pathlib import Path
 import requests
+load_dotenv()
 
 class RedditIngestor:
     def __init__(
         self,
         keyword: Union[str, List[str]] = None,
-        url = "http://127.0.0.1:8000"
+        url = os.getenv("API_URL")
     ):
         load_dotenv()
         self.url = url
@@ -194,7 +195,6 @@ class RedditIngestor:
 
     def fetch_posts(self, subreddit_name: str):
         """Logic behind fetching posts from a subreddit"""
-        add_sub_response = self.add_subreddit_to_db(subreddit_name)
         subreddit = self.reddit.subreddit(subreddit_name)
         self.already_fetched_post_ids = self.get_already_fetched_post_ids(subreddit_name)
 
@@ -252,14 +252,21 @@ class RedditIngestor:
         """Extract comments from a post object and save them to the database"""
         n_comments = 0
         submission = self.reddit.submission(id=post_id)
-        submission.comments.replace_more(limit=0)
-        comments = list(submission.comments)
-        comments = comments[:self.comments_per_post_limit]
+        try:
+            submission.comments.replace_more(limit=0)
+            comments = list(submission.comments)
+            comments = comments[:self.comments_per_post_limit]
+        except Exception as e:
+            print(f"Error fetching comments for post {post_id}: {e}")
+            return
         for comment in comments:
             if self.comment_check(comment):
-                comment_data = self.comment_to_dict(comment)
-                self.add_comment_to_db(comment_data)
-                n_comments += 1
+                try:
+                    comment_data = self.comment_to_dict(comment)
+                    self.add_comment_to_db(comment_data)
+                    n_comments += 1
+                except Exception as e:
+                    print(f"Error extracting comments from post {post_id}: {e}")
         print(f"Extracted {n_comments} comments from post {post_id}")
 
 
