@@ -13,16 +13,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  perfect:
+  backend:
     build: .
-    container_name: social_trend_analyzer-perfect
+    container_name: social_trend_analyzer-backend
     volumes:
       - .:/app
     env_file:
       - docker.env
     depends_on:
       - postgres
-    command: python ./perfect.py
+    ports:
+      - "8000:8000"
+    command: uvicorn src.app:app --host 0.0.0.0 --port 8000
 
   streamlit:
     build: .
@@ -35,7 +37,19 @@ services:
     env_file:
       - docker.env
     depends_on:
-      - perfect
+      - backend
+      - postgres
+
+  pipeline:
+    build: .
+    container_name: social_trend_analyzer-pipeline
+    command: python perfect.py
+    volumes:
+      - .:/app
+    env_file:
+      - docker.env
+    depends_on:
+      - backend
       - postgres
 
 volumes:

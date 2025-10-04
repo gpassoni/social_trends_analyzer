@@ -1,64 +1,40 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, func, Time, MetaData
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import declarative_base, relationship
+from sqlmodel import SQLModel, Field, Session, create_engine, select, Relationship
+from typing import Optional, List
+from datetime import datetime
 
-Base = declarative_base(metadata=MetaData(schema="public"))
+class Subreddit(SQLModel, table=True):
+    name: str = Field(primary_key=True)
+    priority: int = Field(default=0)
 
-class Post(Base):
-    __tablename__ = "posts"
-    post_id = Column(String, primary_key=True)
-    subreddit = Column(String)
-    author = Column(String)
-    title = Column(Text)
-    selftext = Column(Text)
-    created_utc = Column(Integer)
-    created_ts = Column(DateTime)
-    created_date = Column(DateTime)
-    created_time = Column(Time)
-    score = Column(Integer)
-    author_comment_karma = Column(Integer)
-    author_link_karma = Column(Integer)
-    num_comments = Column(Integer)
-    fetch_type = Column(String)
-    extra = Column(JSONB, nullable=True)
-    comments = relationship("Comment", back_populates="post")
+    posts: list["Post"] = Relationship(back_populates="subreddit")
 
-class Comment(Base):
-    __tablename__ = "comments"
-    comment_id = Column(String, primary_key=True)
-    post_id = Column(String, ForeignKey("posts.post_id"))
-    parent_id = Column(String)
-    author_comment_karma = Column(Integer)
-    author_link_karma = Column(Integer)
-    author = Column(String)
-    body = Column(Text)
-    created_utc = Column(Integer)
-    created_ts = Column(DateTime)
-    created_date = Column(DateTime)
-    created_time = Column(Time)
-    extra = Column(JSONB, nullable=True)
-    post = relationship("Post", back_populates="comments")
-    sentiment = relationship("CommentSentiment", back_populates="comment", uselist=False)
+class Post(SQLModel, table=True):
+    post_id: str = Field(primary_key=True)
+    title: str 
+    author: str 
+    score: int
+    created_utc: int
+    created_datetime: datetime
+    fetch_type: str
 
-class CommentSentiment(Base):
-    __tablename__ = "comment_sentiments"
-    comment_id = Column(String, ForeignKey("comments.comment_id"), primary_key=True)
-    neutral_score = Column(Float)
-    positive_score = Column(Float)
-    negative_score = Column(Float)
-    pred_label = Column(String)
-    comment = relationship("Comment", back_populates="sentiment", uselist=False)
+    subreddit_name: str = Field(foreign_key="subreddit.name")
+    subreddit: Optional[Subreddit] = Relationship(back_populates="posts")
 
-class SubredditStatus(Base):
-    __tablename__ = "subreddit_status"
-    subreddit = Column(String, primary_key=True)
-    total_posts = Column(Integer, default=0)
-    total_comments = Column(Integer, default=0)
-    last_updated = Column(DateTime, default=func.now(), onupdate=func.now())
-    priority = Column(Integer, default=0)
-    __tablename__ = "subreddit_status"
+    comments: list["Comment"] = Relationship(back_populates="post")
 
-    subreddit = Column(String, primary_key=True)
+class Comment(SQLModel, table=True):
+    comment_id: str = Field(primary_key=True)
+    post_id: str = Field(foreign_key="post.post_id")
+    author: str
+    body: str
+    score: int
+    created_utc: int
+    created_datetime: datetime
 
-    total_posts = Column(Integer, default=0)
+    # To be created after sentiment analysis
+    negative_score: Optional[float] = None
+    neutral_score: Optional[float] = None
+    positive_score: Optional[float] = None
+    pred_label: Optional[str] = None
 
+    post: Optional[Post] = Relationship(back_populates="comments")
